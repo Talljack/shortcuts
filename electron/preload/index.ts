@@ -1,27 +1,79 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// --------- Expose some API to the Renderer process ---------
-contextBridge.exposeInMainWorld('ipcRenderer', {
-  on(...args: Parameters<typeof ipcRenderer.on>) {
-    const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
+// Custom APIs for renderer
+const api = {
+  send: (channel: string, data: any) => {
+    if (channel && data) {
+      ipcRenderer.send(channel, data)
+    }
   },
-  off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
+  on: (channel: string, callback: Function) => {
+    if (channel && callback) {
+      const subscription = (_event: any, data: any) => callback(data)
+      ipcRenderer.on(channel, subscription)
+      return () => {
+        ipcRenderer.removeListener(channel, subscription)
+      }
+    }
+    return () => {}
   },
-  send(...args: Parameters<typeof ipcRenderer.send>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.send(channel, ...omit)
+  invoke: (channel: string, data: any) => {
+    if (channel) {
+      return ipcRenderer.invoke(channel, data)
+    }
+    return Promise.reject(new Error('Invalid channel'))
   },
-  invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.invoke(channel, ...omit)
+  getShortcuts: (appName: string) => {
+    if (appName) {
+      return ipcRenderer.invoke('get-shortcuts', appName)
+    }
+    return Promise.resolve([])
   },
+  updateShortcutUsage: (data: {
+    appName: string,
+    shortcutId: string
+  }) => {
+    if (data.appName && data.shortcutId) {
+      return ipcRenderer.invoke('update-shortcut-usage', data)
+    }
+    return Promise.resolve()
+  },
+  onActiveWindowChange: (callback: Function) => {
+    if (callback) {
+      const subscription = (_event: any, data: any) => callback(data)
+      ipcRenderer.on('active-window-changed', subscription)
+      return () => {
+        ipcRenderer.removeListener('active-window-changed', subscription)
+      }
+    }
+    return () => {}
+  }
+}
 
-  // You can expose other APTs you need here.
-  // ...
-})
+// Legacy ipcRenderer exposure
+const legacyApi = {
+  send: (...args: any[]) => ipcRenderer.send(...args),
+  on: (...args: any[]) => ipcRenderer.on(...args),
+  once: (...args: any[]) => ipcRenderer.once(...args),
+  removeListener: (...args: any[]) => ipcRenderer.removeListener(...args),
+  removeAllListeners: (...args: any[]) => ipcRenderer.removeAllListeners(...args),
+  off: (...args: any[]) => ipcRenderer.removeListener(...args),
+  invoke: (...args: any[]) => ipcRenderer.invoke(...args),
+}
+
+if (process.contextIsolated) {
+  try {
+    contextBridge.exposeInMainWorld('electron', api)
+    contextBridge.exposeInMainWorld('ipcRenderer', legacyApi)
+  } catch (error) {
+    console.error('Error exposing API:', error)
+  }
+} else {
+  // @ts-ignore (define in dts)
+  window.electron = api
+  // @ts-ignore (define in dts)
+  window.ipcRenderer = legacyApi
+}
 
 // --------- Preload scripts loading ---------
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
