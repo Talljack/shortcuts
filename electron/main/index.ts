@@ -4,9 +4,15 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { update } from './update'
+import activeWin from 'active-win'
+import Store from 'electron-store'
+import { getShortcutsForApp, updateShortcutUsage, resetShortcuts, getAllShortcuts } from './shortcuts'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// Initialize store for saving user progress and preferences
+const store = new Store()
 
 // The built directory structure
 //
@@ -40,84 +46,134 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let win: BrowserWindow | null = null
+let activeWindowDetectionInterval: NodeJS.Timeout | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 async function createWindow() {
   win = new BrowserWindow({
-    title: 'Main window',
+    title: 'Shortcut Master',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
     webPreferences: {
       preload,
-      // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
-      // nodeIntegration: true,
-
-      // Consider using contextBridge.exposeInMainWorld
-      // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
-      // contextIsolation: false,
+      contextIsolation: true,
+      nodeIntegration: false
     },
   })
 
-  if (VITE_DEV_SERVER_URL) { // #298
+  if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
-    // Open devTool if the app is not packaged
     win.webContents.openDevTools()
   } else {
     win.loadFile(indexHtml)
   }
 
-  // Test actively push message to the Electron-Renderer
+  // Start active window detection when window is ready
   win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString())
+    if (win) {
+      // Send initial message
+      win.webContents.send('main-process-message', 'Window loaded at: ' + new Date().toLocaleString())
+      // Start active window detection
+      startActiveWindowDetection()
+    }
   })
 
-  // Make all links open with the browser, not with the application
+  win.on('closed', () => {
+    stopActiveWindowDetection()
+    win = null
+  })
+
+  // Make all links open with the browser
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }
   })
 
-  // Auto update
   update(win)
 }
 
+// Active window detection
+async function detectActiveWindow() {
+  if (!win || win.isDestroyed()) {
+    stopActiveWindowDetection();
+    return;
+  }
+
+  try {
+    const activeWindow = await activeWin();
+    if (activeWindow && win && !win.isDestroyed()) {
+      let appName = activeWindow.owner.name;
+      
+      // 标准化应用名称
+      if (appName.includes('Cursor')) appName = 'Cursor';
+      if (appName.includes('Chrome')) appName = 'Google Chrome';
+      if (appName.includes('Code')) appName = 'Visual Studio Code';
+      if (appName.includes('Photoshop')) appName = 'Adobe Photoshop';
+      
+      // 确保不是自己的窗口
+      if (appName !== 'Shortcut Master') {
+        win.webContents.send('active-window-changed', {
+          name: appName,
+          title: activeWindow.title,
+          path: activeWindow.owner.path
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error detecting active window:', error);
+  }
+}
+
+function startActiveWindowDetection() {
+  stopActiveWindowDetection();
+  if (!activeWindowDetectionInterval && win && !win.isDestroyed()) {
+    activeWindowDetectionInterval = setInterval(detectActiveWindow, 1000);
+  }
+}
+
+function stopActiveWindowDetection() {
+  if (activeWindowDetectionInterval) {
+    clearInterval(activeWindowDetectionInterval);
+    activeWindowDetectionInterval = null;
+  }
+}
+
+// App lifecycle events
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
-  win = null
-  if (process.platform !== 'darwin') app.quit()
-})
-
-app.on('second-instance', () => {
-  if (win) {
-    // Focus on the main window if the user tried to open another
-    if (win.isMinimized()) win.restore()
-    win.focus()
+  stopActiveWindowDetection();
+  win = null;
+  if (process.platform !== 'darwin') {
+    app.quit();
   }
-})
+});
 
 app.on('activate', () => {
-  const allWindows = BrowserWindow.getAllWindows()
-  if (allWindows.length) {
-    allWindows[0].focus()
-  } else {
-    createWindow()
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
   }
+});
+
+// IPC handlers
+ipcMain.handle('get-shortcuts', async (_, appName: string) => {
+  const shortcuts = getShortcutsForApp(appName);
+  return shortcuts;
+});
+
+ipcMain.handle('update-shortcut-usage', async (_, data: {
+  appName: string,
+  shortcutId: string
+}) => {
+  updateShortcutUsage(data.appName, data.shortcutId)
 })
 
-// New window example arg: new windows url
-ipcMain.handle('open-win', (_, arg) => {
-  const childWindow = new BrowserWindow({
-    webPreferences: {
-      preload,
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  })
+// 添加调试用的 IPC handlers
+ipcMain.handle('debug-reset-shortcuts', async () => {
+  resetShortcuts();
+  return getAllShortcuts();
+});
 
-  if (VITE_DEV_SERVER_URL) {
-    childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`)
-  } else {
-    childWindow.loadFile(indexHtml, { hash: arg })
-  }
-})
+ipcMain.handle('debug-get-all-shortcuts', async () => {
+  return getAllShortcuts();
+});
