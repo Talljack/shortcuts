@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import ShortcutList from './ShortcutList';
 import ShortcutSearch from './ShortcutSearch';
-import DailySuggestion from './DailySuggestion';
-import { FiCommand, FiSearch, FiMonitor } from 'react-icons/fi';
+import { FiMonitor } from 'react-icons/fi';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRecentApps } from '@/store/recentApps';
 
 const ShortcutManager = () => {
@@ -40,16 +40,6 @@ const ShortcutManager = () => {
     }
   }, [addApp, setCurrentWindow]);
 
-  const handleDebugReset = async () => {
-    try {
-      await window.electron.invoke('debug-reset-shortcuts');
-      const allShortcuts = await window.electron.invoke('debug-get-all-shortcuts');
-      console.log('All shortcuts after reset:', allShortcuts);
-    } catch (error) {
-      console.error('Debug reset error:', error);
-    }
-  };
-
   // 选择一个应用
   const handleAppSelect = (appName: string) => {
     const app = apps.find(a => a.name === appName);
@@ -60,30 +50,16 @@ const ShortcutManager = () => {
 
   return (
     <div className="bg-[#1E1E2E] text-white overflow-auto">
-      <div className="max-w-6xl p-6 mx-auto">
-        <header className="flex items-center justify-between">
-          <h1 className="flex items-center text-3xl font-bold text-transparent bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text">
-            <FiCommand className="inline-block mr-2" />
-            Shortcut Master
-          </h1>
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={handleDebugReset}
-              className="px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600"
-            >
-              Reset Shortcuts
-            </button>
-          )}
-        </header>
+      <div className="p-6 mx-auto max-w-8xl">
 
         <div className="flex items-center gap-3 p-4 bg-[#2A2B3C] rounded-lg mb-6">
-          <div className="flex items-center justify-center w-8 h-8 bg-indigo-500 rounded-lg">
+          <div className="flex justify-center items-center w-8 h-8 bg-indigo-500 rounded-lg">
             <FiMonitor className="w-5 h-5" />
           </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold">
+          <div className="flex flex-col flex-1 gap-2">
+            <p className="m-0 text-xl font-semibold">
               {selectedApp?.name || currentWindow || 'No active window'}
-            </h2>
+            </p>
             {currentWindow && currentWindow !== selectedApp?.name && (
               <p className="text-sm text-gray-400">
                 Current active window: {currentWindow}
@@ -113,11 +89,8 @@ const ShortcutManager = () => {
           />
         </div>
 
+        <ScrollArea className="h-[calc(100vh-340px)]">
         <div className="grid grid-cols-1 gap-6">
-          <div className="bg-[#2A2B3C] rounded-lg p-6 transition-colors duration-200">
-            <DailySuggestion activeApp={selectedApp?.name || currentWindow} />
-          </div>
-
           <div className="bg-[#2A2B3C] rounded-lg p-6 transition-colors duration-200 col-span-full">
             <ShortcutList
               activeApp={selectedApp?.name || currentWindow}
@@ -125,6 +98,7 @@ const ShortcutManager = () => {
             />
           </div>
         </div>
+        </ScrollArea>
       </div>
     </div>
   );

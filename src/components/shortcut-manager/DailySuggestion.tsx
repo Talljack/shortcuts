@@ -34,8 +34,8 @@ const DailySuggestion = ({ activeApp }: Props) => {
 
   if (loading) {
     return (
-      <div className="p-6 text-white rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
-        <div className="h-20 rounded bg-white/10 animate-pulse"></div>
+      <div className="p-6 text-white bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg">
+        <div className="h-20 rounded animate-pulse bg-white/10"></div>
       </div>
     );
   }
@@ -43,8 +43,8 @@ const DailySuggestion = ({ activeApp }: Props) => {
   if (!suggestion) return null;
 
   return (
-    <div className="p-6 text-white transition-all duration-300 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600">
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-6 text-white bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg transition-all duration-300 hover:from-indigo-600 hover:to-purple-600">
+      <div className="flex justify-between items-center mb-4">
         <h3 className="flex items-center text-xl font-semibold">
           <FiStar className="mr-2" />
           Daily Suggestion
@@ -55,7 +55,7 @@ const DailySuggestion = ({ activeApp }: Props) => {
         </span>
       </div>
       <div className="p-4 mt-4 rounded-lg bg-black/20">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex justify-between items-center mb-2">
           <div className="px-3 py-1.5 bg-indigo-500 rounded-md font-mono text-sm font-medium">
             {suggestion.key}
           </div>

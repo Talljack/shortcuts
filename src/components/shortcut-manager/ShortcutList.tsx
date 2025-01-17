@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shortcut } from './types';
 import { FiCommand, FiClock, FiArrowRight } from 'react-icons/fi';
+import { Tag } from 'antd';
 
 interface Props {
   activeApp: string | null;
@@ -49,7 +50,7 @@ const ShortcutList = ({ activeApp, searchQuery }: Props) => {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-24 rounded-lg bg-gray-700/50 animate-pulse"></div>
+          <div key={i} className="h-24 rounded-lg animate-pulse bg-gray-700/50"></div>
         ))}
       </div>
     );
@@ -58,19 +59,17 @@ const ShortcutList = ({ activeApp, searchQuery }: Props) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">
-          Available Shortcuts
-        </h2>
-        <span className="text-sm text-gray-400">
-          {filteredShortcuts.length} shortcuts found
-        </span>
-      </div>
+      <h2 className="flex gap-2 items-center text-xl font-semibold text-white">
+        Available Shortcuts
+        <Tag className="text-white bg-indigo-500">
+          {filteredShortcuts.length}
+        </Tag>
+      </h2>
 
       {/* Shortcuts Grid */}
       {filteredShortcuts.length === 0 ? (
         <div className="py-12 text-center">
-          <FiCommand className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+          <FiCommand className="mx-auto mb-4 w-12 h-12 text-gray-500" />
           <p className="text-gray-400">
             {searchQuery 
               ? 'No shortcuts found for your search' 
