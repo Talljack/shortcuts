@@ -28,7 +28,7 @@
     "electron-store": "^10.0.0",
     "electron-updater": "^6.3.9",
     "fuzzysort": "^3.1.0",
-    "lucide-react": "^0.471.1",
+    "lucide-react": "^0.471.2",
     "react-hotkeys-hook": "^4.6.1",
     "react-icons": "^5.4.0",
     "react-router-dom": "^7.1.1",
@@ -54,5 +54,35 @@
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
     "vitest": "^2.1.8"
+  },
+  "build": {
+    "appId": "com.shortcut.master",
+    "productName": "Shortcut Master",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "mac": {
+      "icon": "public/icon.png",
+      "extendInfo": {
+        "LSUIElement": 1,
+        "NSHighResolutionCapable": true,
+        "NSSupportsAutomaticGraphicsSwitching": true
+      }
+    },
+    "win": {
+      "icon": "public/icon.png"
+    },
+    "linux": {
+      "icon": "public/icon.png"
+    }
+  },
+  "electron-updater": {
+    "provider": "github",
+    "owner": "Talljack",
+    "repo": "shortcuts"
   }
 }

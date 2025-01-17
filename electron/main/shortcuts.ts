@@ -1,20 +1,22 @@
 import Store from 'electron-store';
 import { defaultShortcuts } from '../../src/data/shortcuts';
+import { Shortcut } from '@/data/shortcuts';
+import { activeWin } from 'active-win';
 
 const store = new Store();
 
 // 修改初始化逻辑
 const initializeShortcuts = () => {
-  const currentShortcuts = store.get('shortcuts') as typeof defaultShortcuts || {};
+  const currentShortcuts = store.get('shortcuts') as Shortcut[];
   
   // 合并现有快捷键和默认快捷键
   const mergedShortcuts = { ...defaultShortcuts };
   
   // 保留现有快捷键的使用次数
   Object.keys(currentShortcuts).forEach(app => {
-    if (mergedShortcuts[app]) {
-      mergedShortcuts[app] = mergedShortcuts[app].map(shortcut => {
-        const existing = currentShortcuts[app]?.find(s => s.id === shortcut.id);
+    if (mergedShortcuts[app as keyof typeof mergedShortcuts]) {
+      mergedShortcuts[app as keyof typeof mergedShortcuts] = mergedShortcuts[app as keyof typeof mergedShortcuts].map(shortcut => {
+        const existing = currentShortcuts[app as keyof typeof currentShortcuts]?.find(s => s.id === shortcut.id);
         return existing ? { ...shortcut, usage: existing.usage } : shortcut;
       });
     }
@@ -73,3 +75,39 @@ export const resetShortcuts = () => {
 export const getAllShortcuts = () => {
   return store.get('shortcuts');
 };
+
+// 在 detectActiveWindow 函数中修改
+async function detectActiveWindow() {
+  if (!win || win.isDestroyed()) {
+    stopActiveWindowDetection();
+    return;
+  }
+
+  try {
+    const activeWindow = await activeWin();
+    if (activeWindow && win && !win.isDestroyed()) {
+      let appName = activeWindow.owner.name;
+      
+      // 标准化应用名称
+      if (appName.includes('Cursor')) appName = 'Cursor';
+      if (appName.includes('Chrome')) appName = 'Google Chrome';
+      if (appName.includes('Code')) appName = 'Visual Studio Code';
+      if (appName.includes('Photoshop')) appName = 'Adobe Photoshop';
+      if (appName.includes('Electron')) appName = 'Shortcut Master';
+      
+      // 确保不是自己的窗口，并且窗口保持在顶部
+      if (appName !== 'Shortcut Master') {
+        win.webContents.send('active-window-changed', {
+          name: appName,
+          title: activeWindow.title,
+          path: activeWindow.owner.path
+        });
+        
+        // 确保窗口始终在顶部
+        win.setAlwaysOnTop(true, 'floating');
+      }
+    }
+  } catch (error) {
+    console.error('Error detecting active window:', error);
+  }
+}

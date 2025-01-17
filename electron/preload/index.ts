@@ -23,11 +23,14 @@ const api = {
     }
     return Promise.reject(new Error('Invalid channel'))
   },
-  getShortcuts: (appName: string) => {
+  getShortcutsByAppName: (appName: string) => {
     if (appName) {
-      return ipcRenderer.invoke('get-shortcuts', appName)
+      return ipcRenderer.invoke('get-shortcuts-by-app-name', appName)
     }
     return Promise.resolve([])
+  },
+  getAllShortcuts: () => {
+    return ipcRenderer.invoke('get-all-shortcuts')
   },
   updateShortcutUsage: (data: {
     appName: string,

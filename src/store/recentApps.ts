@@ -52,4 +52,4 @@ export const useRecentApps = create<RecentAppsStore>()(
       name: 'recent-apps-storage'
     }
   )
-); 
+);

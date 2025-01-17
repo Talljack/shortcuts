@@ -4,6 +4,7 @@ import ShortcutSearch from './ShortcutSearch';
 import { FiMonitor } from 'react-icons/fi';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRecentApps } from '@/store/recentApps';
+import type { Shortcut } from '@/data/shortcuts';
 
 const ShortcutManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,15 +18,21 @@ const ShortcutManager = () => {
     setCurrentWindow
   } = useRecentApps();
 
+  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
+
   // 监听窗口变化
   useEffect(() => {
     try {
       const windowHandler = (_event: any, window: any) => {
+        // 只有当前应用未激活时才更新
         if (window && window.name !== 'Shortcut Master') {
+          console.log('Active window changed:', window.name);
           // 添加到访问历史
           addApp(window.name);
           // 更新当前窗口
           setCurrentWindow(window.name);
+          // 只有当没有手动选择的应用时，才自动更新选中的应用
+          setSelectedApp(window.name);
         }
       };
 
@@ -38,13 +45,21 @@ const ShortcutManager = () => {
       setError('Failed to initialize window tracking');
       console.error('Error in ShortcutManager:', err);
     }
-  }, [addApp, setCurrentWindow]);
+  }, [addApp, setCurrentWindow, selectedApp]);
+
+  useEffect(() => {
+    window.ipcRenderer.invoke('get-all-shortcuts').then(shortcuts => {
+      setShortcuts(shortcuts);
+    });
+  }, []);
 
   // 选择一个应用
   const handleAppSelect = (appName: string) => {
     const app = apps.find(a => a.name === appName);
     if (app) {
       setSelectedApp(app);
+    } else {
+      setSelectedApp({ name: appName, lastUsed: new Date(), visits: 0 });
     }
   };
 
@@ -53,18 +68,13 @@ const ShortcutManager = () => {
       <div className="p-6 mx-auto max-w-8xl">
 
         <div className="flex items-center gap-3 p-4 bg-[#2A2B3C] rounded-lg mb-6">
-          <div className="flex justify-center items-center w-8 h-8 bg-indigo-500 rounded-lg">
+          <div className="flex items-center justify-center w-8 h-8 bg-indigo-500 rounded-lg">
             <FiMonitor className="w-5 h-5" />
           </div>
           <div className="flex flex-col flex-1 gap-2">
-            <p className="m-0 text-xl font-semibold">
+            <div className="m-0 text-xl font-semibold">
               {selectedApp?.name || currentWindow || 'No active window'}
-            </p>
-            {currentWindow && currentWindow !== selectedApp?.name && (
-              <p className="text-sm text-gray-400">
-                Current active window: {currentWindow}
-              </p>
-            )}
+            </div>
           </div>
           {apps.length > 0 && (
             <select
@@ -73,9 +83,9 @@ const ShortcutManager = () => {
               className="bg-[#363748] text-white px-4 py-2 rounded-lg border border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Select an app</option>
-              {apps.map(app => (
-                <option key={app.name} value={app.name}>
-                  {app.name}
+              {Object.keys(shortcuts).map(shortcut => (
+                <option key={shortcut} value={shortcut}>
+                  {shortcut}
                 </option>
               ))}
             </select>
