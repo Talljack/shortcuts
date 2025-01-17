@@ -24,7 +24,7 @@ const PracticeMode = () => {
     if (!activeApp) return;
     try {
       setLoading(true);
-      const shortcuts = await window.electron.getShortcuts(activeApp);
+      const shortcuts = await window.electron.getShortcuts(activeApp.name);
       if (shortcuts.length) {
         const randomShortcut = shortcuts[Math.floor(Math.random() * shortcuts.length)];
         setCurrentChallenge(randomShortcut);
@@ -51,7 +51,7 @@ const PracticeMode = () => {
   useHotkeys(currentChallenge?.key || '', () => {
     if (isActive && currentChallenge) {
       window.electron.updateShortcutUsage({
-        appName: activeApp!,
+        appName: activeApp!.name,
         shortcutId: currentChallenge.id
       });
       setScore(s => s + 1);
@@ -92,7 +92,7 @@ const PracticeMode = () => {
           ) : currentChallenge ? (
             <div className="practice-challenge">
               <p className="mb-4 text-lg">Try this shortcut:</p>
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-lg shortcut-key">{currentChallenge.key}</span>
                 <span className="text-gray-300">{currentChallenge.description}</span>
               </div>
