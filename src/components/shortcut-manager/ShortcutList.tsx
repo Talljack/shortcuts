@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Shortcut } from './types';
-import { FiCommand, FiClock, FiArrowRight } from 'react-icons/fi';
+import { Shortcut } from '@/data/shortcuts';
+import { FiCommand, FiClock } from 'react-icons/fi';
 import { Tag } from 'antd';
 
 interface Props {
@@ -36,7 +36,8 @@ const ShortcutList = ({ activeApp, searchQuery }: Props) => {
     if (!activeApp) return;
     try {
       setLoading(true);
-      const data = await window.electron.getShortcuts(activeApp);
+      console.log('activeApp', activeApp);
+      const data = await window.electron.getShortcutsByAppName(activeApp);
       setShortcuts(data);
       setFilteredShortcuts(data);
     } catch (error) {
@@ -59,7 +60,7 @@ const ShortcutList = ({ activeApp, searchQuery }: Props) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <h2 className="flex gap-2 items-center text-xl font-semibold text-white">
+      <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
         Available Shortcuts
         <Tag className="text-white bg-indigo-500">
           {filteredShortcuts.length}
@@ -69,7 +70,7 @@ const ShortcutList = ({ activeApp, searchQuery }: Props) => {
       {/* Shortcuts Grid */}
       {filteredShortcuts.length === 0 ? (
         <div className="py-12 text-center">
-          <FiCommand className="mx-auto mb-4 w-12 h-12 text-gray-500" />
+          <FiCommand className="w-12 h-12 mx-auto mb-4 text-gray-500" />
           <p className="text-gray-400">
             {searchQuery 
               ? 'No shortcuts found for your search' 

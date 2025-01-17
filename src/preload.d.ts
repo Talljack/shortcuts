@@ -14,7 +14,7 @@ interface ElectronAPI {
   send: (channel: string, data: any) => void
   on: (channel: string, callback: Function) => () => void
   invoke: (channel: string, data: any) => Promise<any>
-  getShortcuts: (appName: string) => Promise<Shortcut[]>
+  getShortcutsByAppName: (appName: string) => Promise<Shortcut[]>
   updateShortcutUsage: (data: {
     appName: string
     shortcutId: string
@@ -24,6 +24,7 @@ interface ElectronAPI {
     title: string
     path: string
   }) => void) => () => void
+  getAllShortcuts: () => Promise<Shortcut[]>
 }
 
 declare global {

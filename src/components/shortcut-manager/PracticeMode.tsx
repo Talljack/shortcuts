@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { Shortcut } from './types';
-import { FiPlay, FiPause, FiAward, FiTarget } from 'react-icons/fi';
+import { Shortcut } from '@/data/shortcuts';
+import { FiPlay, FiPause, FiTarget } from 'react-icons/fi';
 import { useRecentApps } from '@/store/recentApps';
 
 
@@ -24,7 +24,7 @@ const PracticeMode = () => {
     if (!activeApp) return;
     try {
       setLoading(true);
-      const shortcuts = await window.electron.getShortcuts(activeApp.name);
+      const shortcuts = await window.electron.getShortcutsByAppName(activeApp.name);
       if (shortcuts.length) {
         const randomShortcut = shortcuts[Math.floor(Math.random() * shortcuts.length)];
         setCurrentChallenge(randomShortcut);
@@ -67,7 +67,7 @@ const PracticeMode = () => {
           <FiTarget className="mr-2" />
           Practice Mode
         </h3>
-        <button 
+        <button
           onClick={isActive ? handleStopPractice : handleStartPractice}
           className={`practice-toggle ${isActive ? 'bg-red-500 hover:bg-red-600' : ''}`}
         >
@@ -92,7 +92,7 @@ const PracticeMode = () => {
           ) : currentChallenge ? (
             <div className="practice-challenge">
               <p className="mb-4 text-lg">Try this shortcut:</p>
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <span className="text-lg shortcut-key">{currentChallenge.key}</span>
                 <span className="text-gray-300">{currentChallenge.description}</span>
               </div>
